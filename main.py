@@ -1,8 +1,21 @@
 from flask import Flask, request, jsonify
 from pptx import Presentation
+import openai
 import os
 
 app = Flask(__name__)
+openai.api_key = "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"
+
+
+def get_embedding(text, model="text-embedding-ada-002"):
+   text = text.replace("\n", " ")
+   return openai.Embedding.create(input = [text], model=model)['data'][0]['embedding']
+
+def array_embedder(sub_paragraphs):
+    embeddings = []
+    for paragraph in sub_paragraphs:
+        embeddings.append(get_embedding(paragraph))
+    return embeddings
 
 @app.route('/scrape_pptx', methods=['POST'])
 def scrape_pptx():
@@ -29,10 +42,17 @@ def scrape_pptx():
                                 extracted_text += run.text
 
             # Remove the temporary file
-            print(extracted_text)
+            paragraphs = []
+            max_words = 200
+            words = extracted_text.split()
+            while words:
+                paragraph = " ".join(words[:max_words])
+                paragraphs.append(paragraph)
+                words = words[max_words:]
+         
+            embeddings = array_embedder(paragraphs)
             os.remove(filepath)
-
-            return jsonify({'text': extracted_text})
+            return jsonify({'embeddings': embeddings})
 
         except Exception as e:
             return jsonify({'error': 'Error occurred while extracting text: {}'.format(str(e))})
