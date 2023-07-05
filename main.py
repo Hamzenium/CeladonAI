@@ -103,14 +103,11 @@ def similarity(question, embeddings, paragraphs):
 @app.route('/get_answer', methods=['POST'])
 def get_answer():
     data = request.get_json()
-    question = data.get('question')
+    question = str(data.get('question'))
     paragraphs = data.get('paragraphs')
     embedding = data.get('embedding')
-    # question = request.args.get('question')
-    # question_embedding = get_embedding(question)
-    # para = request.args.get('paragraphs')
-    # embedding = request.args.get('embedding')
-    similarity_result = similarity(question,embedding, paragraphs)
+    question_embedding =get_embedding(question)
+    similarity_result = similarity(question_embedding,embedding, paragraphs)
 
     prompt_result = create_prompt(similarity_result, question)
     generated_answer = generate_answer(prompt_result)
