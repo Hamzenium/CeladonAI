@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify
 from pptx import Presentation
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 import openai
 import os
 
@@ -59,6 +61,62 @@ def scrape_pptx():
 
     else:
         return jsonify({'error': 'Invalid file format. Only PowerPoint files are supported.'})
+    
+def create_prompt(context, query):
+    header = "Answer the question as truthfully as possible using the provided context, and if the answer is not contained within the text and requires some latest information to be updated, print 'Please come up with another question'\n"
+    final = header + context + "\n\n" + query + "\n"
+    return final 
+
+
+
+def generate_answer(prompt):
+    response = openai.Completion.create(
+    model="text-davinci-003",
+    prompt=prompt,
+    temperature=0.7,
+    max_tokens=256,
+    top_p=1,
+    frequency_penalty=0,
+    presence_penalty=0,
+    stop = [' END']
+    )
+    return (response.choices[0].text).strip()
+
+
+
+def similarity(question, embeddings, paragraphs):
+    similarity_scores = cosine_similarity([question], embeddings)[0]
+
+    most_similar_indices = np.argsort(similarity_scores)[-3:]
+
+    most_similar_paragraphs = [(paragraphs[i], similarity_scores[i]) for i in most_similar_indices[::-1]]
+    most_similar_string = ""
+    for paragraph, score in most_similar_paragraphs:
+        most_similar_string += paragraph + "\n"
+        most_similar_string += "Similarity score: " + str(score) + "\n"
+
+    # Return the top three most similar paragraphs as a string
+    return most_similar_string
+
+
+
+@app.route('/get_answer', methods=['POST'])
+def get_answer():
+    data = request.get_json()
+    question = data.get('question')
+    paragraphs = data.get('paragraphs')
+    embedding = data.get('embedding')
+    # question = request.args.get('question')
+    # question_embedding = get_embedding(question)
+    # para = request.args.get('paragraphs')
+    # embedding = request.args.get('embedding')
+    similarity_result = similarity(question,embedding, paragraphs)
+
+    prompt_result = create_prompt(similarity_result, question)
+    generated_answer = generate_answer(prompt_result)
+
+    return jsonify({'answer': generated_answer})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
