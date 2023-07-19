@@ -1,9 +1,21 @@
 from flask import Flask, request, jsonify
 from pptx import Presentation
 import numpy as np
+import json
 from sklearn.metrics.pairwise import cosine_similarity
 import openai
 import os
+import uuid 
+import firebase_admin       
+from firebase_admin import credentials
+from firebase_admin import firestore
+cred = credentials.Certificate("key.json")
+firebase_admin.initialize_app(cred)
+
+db = firestore.client()
+user_ref = db.collection('user')
+
+
 
 app = Flask(__name__)
 openai.api_key = "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"
@@ -53,15 +65,31 @@ def scrape_pptx():
                 words = words[max_words:]
          
             embeddings = array_embedder(paragraphs)
+            document_name = pptx_file.filename
             os.remove(filepath)
-            return jsonify({'embeddings': embeddings})
+           # Save the extracted data to
+            embeddings_json = json.dumps(embeddings)
+
+            data = {
+                'embeddings': embeddings_json,  # Convert the embeddings to strings
+                'Paragraphs': paragraphs,
+                'name': document_name
+            }
+
+            # Generate a unique document ID using UUID
+            document_id = str(uuid.uuid4())
+            ucid = "EUmaAfR4UiUtmH8u7gwyATp0g5s2"
+
+            # Push the data to Firestore
+            db.collection('users').document(document_id).set(data)
+            return jsonify({'embeddings': embeddings, 'Paragraphs':paragraphs, 'name': document_name , "ucid": ucid})
 
         except Exception as e:
             return jsonify({'error': 'Error occurred while extracting text: {}'.format(str(e))})
 
     else:
         return jsonify({'error': 'Invalid file format. Only PowerPoint files are supported.'})
-    
+     
 def create_prompt(context, query):
     header = "Answer the question as truthfully as possible using the provided context, and if the answer is not contained within the text and requires some latest information to be updated, print 'Please come up with another question'\n"
     final = header + context + "\n\n" + query + "\n"
@@ -103,14 +131,29 @@ def similarity(question, embeddings, paragraphs):
 @app.route('/get_answer', methods=['POST'])
 def get_answer():
     data = request.get_json()
+    document_id = str(data.get('document_id'))
     question = str(data.get('question'))
+    doc_ref = db.collection('users').document(document_id)
+    doc = doc_ref.get()
+    if not doc.exists:
+        return jsonify({'error': 'Document not found'})
+    
+    data = doc.to_dict()
     paragraphs = data.get('paragraphs')
-    embedding = data.get('embedding')
-    question_embedding =get_embedding(question)
-    similarity_result = similarity(question_embedding,embedding, paragraphs)
+    embeddings = data.get('embeddings')
 
+    question_embedding = get_embedding(question)
+    embeddings_list = json.loads(embeddings)
+    print("first paragrapgh")
+    print(embeddings_list[4])
+
+    # Convert embeddings back to the original data structure
+
+
+    similarity_result = similarity(question_embedding, embeddings_list, paragraphs)
     prompt_result = create_prompt(similarity_result, question)
     generated_answer = generate_answer(prompt_result)
+
 
     return jsonify({'answer': generated_answer})
 
