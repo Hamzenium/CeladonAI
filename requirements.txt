@@ -50,7 +50,6 @@ colorful==0.5.5
 colorlog==6.7.0
 commonmark==0.9.1
 compressed-rtf==1.0.6
-conda==22.11.1
 confection==0.0.4
 configobj==5.0.8
 configparser==5.3.0
