@@ -10,6 +10,13 @@ import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
 cred = credentials.Certificate("key.json")
+import pinecone      
+
+pinecone.init(      
+	api_key='96c245fe-c521-4a67-87eb-ba5faacbe2dc',      
+	environment='us-west1-gcp-free'      
+)      
+index = pinecone.Index('celadonai')
 firebase_admin.initialize_app(cred)
 
 db = firestore.client()
@@ -145,7 +152,7 @@ def get_answer():
     question_embedding = get_embedding(question)
     embeddings_list = json.loads(embeddings)
     print("first paragrapgh")
-    print(embeddings_list[4])
+
 
     # Convert embeddings back to the original data structure
 
@@ -160,3 +167,5 @@ def get_answer():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
