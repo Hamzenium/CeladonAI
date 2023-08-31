@@ -87,7 +87,7 @@ def scrape_pptx(field):
 
             # Push the data to Firestore
             db.collection('users').document(document_id).set(data)
-            return jsonify({'embeddings': embeddings, 'Paragraphs':paragraphs, 'name': document_name , "ucid": ucid})
+            return jsonify({'embeddings': embeddings, 'Paragraphs':paragraphs, 'name': document_name , "ucid": ucid, "id": document_id})
 
         except Exception as e:
             return jsonify({'error': 'Error occurred while extracting text: {}'.format(str(e))})
