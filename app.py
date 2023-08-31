@@ -164,6 +164,27 @@ def get_answer():
 
     return jsonify({'answer': generated_answer})
 
+@app.route('/get_answers', methods=['POST'])
+def get_answers():
+
+    data = request.get_json()
+    question = str(data.get('question'))
+    paragraphs = data.get('Paragraphs')
+    embeddings = data.get('embeddings')
+    print(embeddings[0])
+    print(paragraphs)
+
+    # Assuming `get_embedding`, `similarity`, and `generate_answer` are your defined functions
+    question_embedding = get_embedding(question)
+    print("first paragraph")
+
+    similarity_result = similarity(question_embedding, embeddings, paragraphs)
+    prompt_result = create_prompt(similarity_result, question)
+    generated_answer = generate_answer(prompt_result)
+
+    return jsonify({'answer': generated_answer})
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
