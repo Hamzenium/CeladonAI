@@ -11,13 +11,8 @@ import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
 cred = credentials.Certificate("key.json")
-import pinecone      
+    
 
-pinecone.init(      
-	api_key='96c245fe-c521-4a67-87eb-ba5faacbe2dc',      
-	environment='us-west1-gcp-free'      
-)      
-index = pinecone.Index('celadonai')
 firebase_admin.initialize_app(cred)
 
 db = firestore.client()
@@ -39,12 +34,13 @@ def array_embedder(sub_paragraphs):
         embeddings.append(get_embedding(paragraph))
     return embeddings
 
-@app.route('/scrape_pptx', methods=['POST'])
-def scrape_pptx():
+@app.route('/upload/<field>', methods=['POST'])
+def scrape_pptx(field):
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'})
 
     pptx_file = request.files['file']
+    ucid = field
 
     # Check if the file is a PowerPoint file
     if pptx_file.filename.endswith('.pptx') or pptx_file.filename.endswith('.PPTX'):
@@ -77,8 +73,6 @@ def scrape_pptx():
             os.remove(filepath)
            # Save the extracted data to
             embeddings_json = json.dumps(embeddings)
-
-            ucid = "EUmaAfR4UiUtmH8u7gwyATp0g5s2"
 
             data = {
                 'embeddings': embeddings_json,  # Convert the embeddings to strings
@@ -138,7 +132,7 @@ def similarity(question, embeddings, paragraphs):
 
 
 
-@app.route('/get_answer', methods=['POST'])
+@app.route('/query', methods=['POST'])
 def get_answer():
     data = request.get_json()
     document_id = str(data.get('document_id'))
