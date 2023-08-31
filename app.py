@@ -167,6 +167,7 @@ def get_answer():
 
     return jsonify({'answer': generated_answer})
 
+
 @app.route('/dashboard/<field>', methods=['GET'])
 def dashboard(field):
     try:
