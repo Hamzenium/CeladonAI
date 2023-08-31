@@ -72,17 +72,18 @@ def scrape_pptx(field):
             document_name = pptx_file.filename
             os.remove(filepath)
            # Save the extracted data to
+            document_id = str(uuid.uuid4())
             embeddings_json = json.dumps(embeddings)
 
             data = {
                 'embeddings': embeddings_json,  # Convert the embeddings to strings
                 'Paragraphs': paragraphs,
                 'name': document_name,
-                'ucid': ucid
+                'ucid': ucid,
+                'document_id': document_id
             }
 
             # Generate a unique document ID using UUID
-            document_id = str(uuid.uuid4())
 
             # Push the data to Firestore
             db.collection('users').document(document_id).set(data)
