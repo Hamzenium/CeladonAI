@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from pptx import Presentation
 import numpy as np
 import json
+from fuzzywuzzy import fuzz
 from sklearn.metrics.pairwise import cosine_similarity
 import openai
 import os
@@ -77,15 +78,17 @@ def scrape_pptx():
            # Save the extracted data to
             embeddings_json = json.dumps(embeddings)
 
+            ucid = "EUmaAfR4UiUtmH8u7gwyATp0g5s2"
+
             data = {
                 'embeddings': embeddings_json,  # Convert the embeddings to strings
                 'Paragraphs': paragraphs,
-                'name': document_name
+                'name': document_name,
+                'ucid': ucid
             }
 
             # Generate a unique document ID using UUID
             document_id = str(uuid.uuid4())
-            ucid = "EUmaAfR4UiUtmH8u7gwyATp0g5s2"
 
             # Push the data to Firestore
             db.collection('users').document(document_id).set(data)
@@ -146,7 +149,7 @@ def get_answer():
         return jsonify({'error': 'Document not found'})
     
     data = doc.to_dict()
-    paragraphs = data.get('paragraphs')
+    paragraphs = data.get('Paragraphs')
     embeddings = data.get('embeddings')
 
     question_embedding = get_embedding(question)
@@ -164,27 +167,23 @@ def get_answer():
 
     return jsonify({'answer': generated_answer})
 
-@app.route('/get_answers', methods=['POST'])
-def get_answers():
+@app.route('/dashboard/<field>', methods=['GET'])
+def dashboard(field):
+    try:
+        user_search = field
+        user_ref = db.collection('users')  
+        snapshot = user_ref.get()
+        print(snapshot)
 
-    data = request.get_json()
-    question = str(data.get('question'))
-    paragraphs = data.get('Paragraphs')
-    embeddings = data.get('embeddings')
-    print(embeddings[0])
-    print(paragraphs)
+        array = []
+        for doc in snapshot:
+            word = doc.to_dict()['ucid']
+            if user_search in word:
+                array.append(doc.to_dict())
 
-    # Assuming `get_embedding`, `similarity`, and `generate_answer` are your defined functions
-    question_embedding = get_embedding(question)
-    print("first paragraph")
-
-    similarity_result = similarity(question_embedding, embeddings, paragraphs)
-    prompt_result = create_prompt(similarity_result, question)
-    generated_answer = generate_answer(prompt_result)
-
-    return jsonify({'answer': generated_answer})
-
-
+        return jsonify(array)
+    except Exception as error:
+        return str(error)
 
 if __name__ == '__main__':
     app.run(debug=True)
