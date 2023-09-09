@@ -149,8 +149,6 @@ def get_answer():
 
     question_embedding = get_embedding(question)
     embeddings_list = json.loads(embeddings)
-    print("first paragrapgh")
-
 
     # Convert embeddings back to the original data structure
 
@@ -169,7 +167,6 @@ def dashboard(field):
         user_search = field
         user_ref = db.collection('users')  
         snapshot = user_ref.get()
-        print(snapshot)
 
         array = []
         for doc in snapshot:
