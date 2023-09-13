@@ -177,6 +177,18 @@ def dashboard(field):
         return jsonify(array)
     except Exception as error:
         return str(error)
+    
+
+@app.route('/delete/<field>', methods=['GET','DELETE'])
+def delete(field):
+    try:
+        user_search = field
+        user_ref = db.collection('users').document(user_search).delete()
+
+
+        return jsonify(user_ref)
+    except Exception as error:
+        return str(error)
 
 if __name__ == '__main__':
     app.run(debug=True)
