@@ -179,16 +179,33 @@ def dashboard(field):
         return str(error)
     
 
-@app.route('/delete/<field>', methods=['GET','DELETE'])
+@app.route('/delete/<field>', methods=['GET', 'DELETE'])
 def delete(field):
     try:
         user_search = field
-        user_ref = db.collection('users').document(user_search).delete()
-
-
-        return jsonify(user_ref)
+        user_ref = db.collection('users').document(user_search)
+        user_ref.delete()
+        
+        return jsonify({'message': 'Document deleted successfully'})
     except Exception as error:
-        return str(error)
+        return jsonify({'error': str(error)})
+
+@app.route('/update/<id>', methods=['PUT'])
+def update(id):
+    try:
+        ref = db.collection('users').document(id)
+
+        existing_data = ref.get()
+        if not existing_data.exists:
+            return jsonify({"error": "Lab data not found"}), 404
+
+        update_data = request.json  # Assuming the request body contains the updated fields as JSON
+
+        ref.update(update_data)
+
+        return jsonify({"message": "Lab data updated successfully"}), 200
+    except Exception as error:
+        return jsonify({"error": str(error)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
