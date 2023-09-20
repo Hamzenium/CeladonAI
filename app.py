@@ -6,6 +6,7 @@ from fuzzywuzzy import fuzz
 from sklearn.metrics.pairwise import cosine_similarity
 import openai
 import os
+import asyncio
 import uuid 
 import firebase_admin       
 from firebase_admin import credentials
@@ -24,16 +25,21 @@ app = Flask(__name__)
 openai.api_key = "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"
 
 
+#This function uses the ADA LLM to produce the embeddings of the chunks.
 def get_embedding(text, model="text-embedding-ada-002"):
    text = text.replace("\n", " ")
    return openai.Embedding.create(input = [text], model=model)['data'][0]['embedding']
 
+
+#This function is used to break the scraped text into the chunks, and is used as a helper funtion.r
 def array_embedder(sub_paragraphs):
     embeddings = []
     for paragraph in sub_paragraphs:
         embeddings.append(get_embedding(paragraph))
     return embeddings
 
+
+#This end-point was developed to scrape the text from the ppt and store in chunks on firebase.
 @app.route('/upload/<field>', methods=['POST'])
 def scrape_pptx(field):
     if 'file' not in request.files:
@@ -41,6 +47,7 @@ def scrape_pptx(field):
 
     pptx_file = request.files['file']
     ucid = field
+
 
     # Check if the file is a PowerPoint file
     if pptx_file.filename.endswith('.pptx') or pptx_file.filename.endswith('.PPTX'):
@@ -94,7 +101,9 @@ def scrape_pptx(field):
 
     else:
         return jsonify({'error': 'Invalid file format. Only PowerPoint files are supported.'})
-     
+
+
+
 def create_prompt(context, query):
     header = '''I want you to act as a document that I am having a conversation with. Your name is "AI Assistant". You will provide me with answers from the given info. If the answer is not included, say exactly "Hmm, I am not sure." and stop after that. Refuse to answer any question not about the info. Never break character.'''
     final = header + context + "\n\n" + query + "\n"
@@ -102,6 +111,8 @@ def create_prompt(context, query):
 
 
 
+
+#This end-point retrives the answer through the API call from the davinci LLM.
 def generate_answer(prompt):
     response = openai.Completion.create(
     model="text-davinci-003",
@@ -117,6 +128,9 @@ def generate_answer(prompt):
 
 
 
+
+#This end-point was developed to retrive the most similar chunks of text, it uses cosine similairty to compare the embeddings of the 
+# questions with the that of the chunks of paragraphs in vector space.
 def similarity(question, embeddings, paragraphs):
     similarity_scores = cosine_similarity([question], embeddings)[0]
 
@@ -133,8 +147,11 @@ def similarity(question, embeddings, paragraphs):
 
 
 
+
+
+#This end-point was developed to retrive a response of the question sent by the users.
 @app.route('/query', methods=['POST'])
-def get_answer():
+async def get_answer():
     data = request.get_json()
     document_id = str(data.get('document_id'))
     question = str(data.get('question'))
@@ -152,15 +169,19 @@ def get_answer():
 
     # Convert embeddings back to the original data structure
 
-
     similarity_result = similarity(question_embedding, embeddings_list, paragraphs)
     prompt_result = create_prompt(similarity_result, question)
-    generated_answer = generate_answer(prompt_result)
 
+
+    loop = asyncio.get_event_loop()
+    generated_answer = await loop.run_in_executor(None, lambda: generate_answer(prompt_result))
 
     return jsonify({'answer': generated_answer})
 
 
+
+
+#This end-point was developed to retrive all the docuements posted by the users.
 @app.route('/dashboard/<field>', methods=['GET'])
 def dashboard(field):
     try:
@@ -179,6 +200,8 @@ def dashboard(field):
         return str(error)
     
 
+    
+#This end-point was developed to delete a specific docuement posted by the user.
 @app.route('/delete/<field>', methods=['GET', 'DELETE'])
 def delete(field):
     try:
@@ -189,7 +212,10 @@ def delete(field):
         return jsonify({'message': 'Document deleted successfully'})
     except Exception as error:
         return jsonify({'error': str(error)})
+    
 
+
+#This end-point was developed to update the docuement posted by the users.
 @app.route('/update/<id>', methods=['PUT'])
 def update(id):
     try:
