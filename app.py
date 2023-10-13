@@ -179,25 +179,18 @@ async def get_answer():
     return jsonify({'answer': generated_answer})
 
 
-
-
-#This end-point was developed to retrive all the docuements posted by the users.
+    
 @app.route('/dashboard/<field>', methods=['GET'])
 def dashboard(field):
     try:
         user_search = field
-        user_ref = db.collection('users')  
-        snapshot = user_ref.get()
-
-        array = []
-        for doc in snapshot:
-            word = doc.to_dict()['ucid']
-            if user_search in word:
-                array.append(doc.to_dict())
-
+        user_ref = db.collection('users')
+        query = user_ref.where('ucid', '==', user_search).stream()
+        array = [doc.to_dict() for doc in query]
         return jsonify(array)
     except Exception as error:
         return str(error)
+
     
 
     
