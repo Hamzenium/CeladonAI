@@ -177,7 +177,7 @@ async def get_answer():
     print(temperature)
     generated_answer = await loop.run_in_executor(None, lambda: generate_answer(prompt_result,temperature))
 
-    return jsonify({'answer': generated_answer})
+    return jsonify({'answer': generated_answer, "Parapraphs": similarity_result})
 
 
     
