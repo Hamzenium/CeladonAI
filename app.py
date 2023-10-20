@@ -113,11 +113,11 @@ def create_prompt(context, query):
 
 
 #This end-point retrives the answer through the API call from the davinci LLM.
-def generate_answer(prompt):
+def generate_answer(prompt, temperature):
     response = openai.Completion.create(
     model="text-davinci-003",
     prompt=prompt,
-    temperature=0.7,
+    temperature= temperature,
     max_tokens=256,
     top_p=1,
     frequency_penalty=0,
@@ -125,7 +125,6 @@ def generate_answer(prompt):
     stop = [' END']
     )
     return (response.choices[0].text).strip()
-
 
 
 
@@ -155,6 +154,7 @@ async def get_answer():
     data = request.get_json()
     document_id = str(data.get('document_id'))
     question = str(data.get('question'))
+    temperature = data.get('temperature')
     doc_ref = db.collection('users').document(document_id)
     doc = doc_ref.get()
     if not doc.exists:
@@ -174,9 +174,10 @@ async def get_answer():
 
 
     loop = asyncio.get_event_loop()
-    generated_answer = await loop.run_in_executor(None, lambda: generate_answer(prompt_result))
+    print(temperature)
+    generated_answer = await loop.run_in_executor(None, lambda: generate_answer(prompt_result,temperature))
 
-    return jsonify({'answer': generated_answer})
+    return jsonify({'answer': generated_answer, "Parapraphs": similarity_result})
 
 
     
