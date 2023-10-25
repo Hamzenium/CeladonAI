@@ -1,4 +1,5 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session
+from flask_session import Session
 from pptx import Presentation
 import numpy as np
 import json
@@ -22,6 +23,10 @@ user_ref = db.collection('user')
 
 
 app = Flask(__name__)
+app.secret_key = 'sk-DSVpAn83ztBLK9Nb6VZzT3BlbkFJr3Ar0q2K28hc3YLT4Qaf437'
+app.config['SESSION_TYPE'] = 'filesystem'  # You can choose other session storage options
+app.config['PERMANENT_SESSION_LIFETIME'] = 1200 # 30 minutes (adjust as needed)
+Session(app)
 openai.api_key = "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"
 
 
@@ -193,7 +198,12 @@ def dashboard(field):
         return str(error)
 
     
-
+@app.route('/refresh_session', methods=['GET'])
+def refresh_session():
+    if 'username' in session:
+        session.permanent = True  # Mark the session as permanent
+        return 'Session refreshed.'
+    return 'Not logged in.'
     
 #This end-point was developed to delete a specific docuement posted by the user.
 @app.route('/delete/<field>', methods=['GET', 'DELETE'])
