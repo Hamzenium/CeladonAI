@@ -115,7 +115,7 @@ def create_prompt(context, query):
 #This end-point retrives the answer through the API call from the davinci LLM.
 def generate_answer(prompt, temperature):
     response = openai.Completion.create(
-    model="text-davinci-003",
+    model="gpt-3.5-turbo-instruct",
     prompt=prompt,
     temperature= temperature,
     max_tokens=256,
@@ -177,7 +177,7 @@ async def get_answer():
     print(temperature)
     generated_answer = await loop.run_in_executor(None, lambda: generate_answer(prompt_result,temperature))
 
-    return jsonify({'answer': generated_answer, "Parapraphs": similarity_result})
+    return jsonify({'answer': generated_answer})
 
 
     
@@ -229,5 +229,4 @@ def update(id):
 
 if __name__ == '__main__':
     app.run(debug=True)
-
 
