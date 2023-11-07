@@ -121,7 +121,7 @@ def scrape_pptx(field):
 
 
 def create_prompt(context, query):
-    header = '''I want you to act as a document that I am having a conversation with. Your name is "AI Assistant". You will provide me with answers from the given info. If the answer is not included, say exactly "Hmm, I am not sure." and stop after that. Refuse to answer any question not about the info. Never break character.'''
+    header = "Answer the question as truthfully as possible using the provided context, and if the answer is not contained within the text and requires some latest information to be updated, print 'Please come up with another question'\n"
     final = header + context + "\n\n" + query + "\n"
     return final 
 
