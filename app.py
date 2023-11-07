@@ -26,10 +26,10 @@ user_ref = db.collection('users')
 
 
 app = Flask(__name__)
-app.secret_key = 'sk-DSVpAn83ztBLK9Nb6VZzT3BlbkFJr3Ar0q2K28hc3YLT4Qaf437'
-app.config['SESSION_TYPE'] = 'filesystem'  # You can choose other session storage options
-app.config['PERMANENT_SESSION_LIFETIME'] = 4 # 30 minutes (adjust as needed)
-Session(app)
+# app.secret_key = 'sk-DSVpAn83ztBLK9Nb6VZzT3BlbkFJr3Ar0q2K28hc3YLT4Qaf437'
+# app.config['SESSION_TYPE'] = 'filesystem'  # You can choose other session storage options
+# app.config['PERMANENT_SESSION_LIFETIME'] = 4 # 30 minutes (adjust as needed)
+# Session(app)
 openai.api_key = "sk-0tsxXxXpqVdU7Mom2BFOT3BlbkFJzqv7WcNkFfGKbdvtnEyY"
 
 
@@ -170,7 +170,6 @@ async def get_answer():
     data = request.get_json()
     document_id = str(data.get('document_id'))
     question = str(data.get('question'))
-    temperature = 1.0
     doc_ref = db.collection('users').document(document_id)
     doc = doc_ref.get()
     if not doc.exists:
@@ -209,12 +208,12 @@ def dashboard(field):
         return str(error)
 
 #This end-point was used to return the session.  
-@app.route('/refresh_session', methods=['GET'])
-def refresh_session():
-    if 'username' in session:
-        session.permanent = True  # Mark the session as permanent
-        return 'Session refreshed.'
-    return 'Not logged in.'
+# @app.route('/refresh_session', methods=['GET'])
+# def refresh_session():
+#     if 'username' in session:
+#         session.permanent = True  # Mark the session as permanent
+#         return 'Session refreshed.'
+#     return 'Not logged in.'
 
 
 #This end-point was developed to delete a specific docuement posted by the user.
