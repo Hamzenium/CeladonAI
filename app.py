@@ -3,31 +3,34 @@ from flask_session import Session
 from pptx import Presentation
 import numpy as np
 import json
+import time
 from fuzzywuzzy import fuzz
 from sklearn.metrics.pairwise import cosine_similarity
 import openai
 import os
+import tempfile
 import asyncio
 import uuid 
-import firebase_admin       
+import firebase_admin   
+from firebase import firebase
 from firebase_admin import credentials
-from firebase_admin import firestore
+from firebase_admin import firestore, storage
 cred = credentials.Certificate("key.json")
     
 
 firebase_admin.initialize_app(cred)
 
 db = firestore.client()
-user_ref = db.collection('user')
+user_ref = db.collection('users')
 
 
 
 app = Flask(__name__)
 app.secret_key = 'sk-DSVpAn83ztBLK9Nb6VZzT3BlbkFJr3Ar0q2K28hc3YLT4Qaf437'
 app.config['SESSION_TYPE'] = 'filesystem'  # You can choose other session storage options
-app.config['PERMANENT_SESSION_LIFETIME'] = 1200 # 30 minutes (adjust as needed)
+app.config['PERMANENT_SESSION_LIFETIME'] = 4 # 30 minutes (adjust as needed)
 Session(app)
-openai.api_key = "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"
+openai.api_key = "sk-0tsxXxXpqVdU7Mom2BFOT3BlbkFJzqv7WcNkFfGKbdvtnEyY"
 
 
 #This function uses the ADA LLM to produce the embeddings of the chunks.
@@ -51,8 +54,8 @@ def scrape_pptx(field):
         return jsonify({'error': 'No file uploaded'})
 
     pptx_file = request.files['file']
-    ucid = field
 
+    ucid = field
 
     # Check if the file is a PowerPoint file
     if pptx_file.filename.endswith('.pptx') or pptx_file.filename.endswith('.PPTX'):
@@ -87,19 +90,27 @@ def scrape_pptx(field):
             document_id = str(uuid.uuid4())
             embeddings_json = json.dumps(embeddings)
 
+            bucket_name = "celadonai-69915.appspot.com"
+            storage_client = storage.bucket(bucket_name)
+            blob = storage_client.blob(document_name)
+            pptx_url = blob.public_url
+
+
             data = {
                 'embeddings': embeddings_json,  # Convert the embeddings to strings
                 'Paragraphs': paragraphs,
                 'name': document_name,
                 'ucid': ucid,
-                'document_id': document_id
+                'document_id': document_id,
+                'pptx_url': pptx_url
             }
 
             # Generate a unique document ID using UUID
 
             # Push the data to Firestore
             db.collection('users').document(document_id).set(data)
-            return jsonify({'embeddings': embeddings, 'Paragraphs':paragraphs, 'name': document_name , "ucid": ucid, "id": document_id})
+
+            return jsonify({'embeddings': embeddings, 'Paragraphs':paragraphs, 'name': document_name , "ucid": ucid, "id": document_id, 'pptx_url': pptx_url})
 
         except Exception as e:
             return jsonify({'error': 'Error occurred while extracting text: {}'.format(str(e))})
@@ -159,14 +170,14 @@ async def get_answer():
     data = request.get_json()
     document_id = str(data.get('document_id'))
     question = str(data.get('question'))
-    temperature = data.get('temperature')
+    temperature = 1.0
     doc_ref = db.collection('users').document(document_id)
     doc = doc_ref.get()
     if not doc.exists:
         return jsonify({'error': 'Document not found'})
     
     data = doc.to_dict()
-    paragraphs = data.get('Paragraphs')
+    paragraphs = data.get('Paragraphs') 
     embeddings = data.get('embeddings')
 
     question_embedding = get_embedding(question)
@@ -179,13 +190,13 @@ async def get_answer():
 
 
     loop = asyncio.get_event_loop()
-    print(temperature)
-    generated_answer = await loop.run_in_executor(None, lambda: generate_answer(prompt_result,temperature))
+    generated_answer = await loop.run_in_executor(None, lambda: generate_answer(prompt_result,1.0))
+    print(generate_answer)
 
     return jsonify({'answer': generated_answer})
 
 
-    
+ #This end-point was used to return all the documents uploaded by the user.   
 @app.route('/dashboard/<field>', methods=['GET'])
 def dashboard(field):
     try:
@@ -197,14 +208,15 @@ def dashboard(field):
     except Exception as error:
         return str(error)
 
-    
+#This end-point was used to return the session.  
 @app.route('/refresh_session', methods=['GET'])
 def refresh_session():
     if 'username' in session:
         session.permanent = True  # Mark the session as permanent
         return 'Session refreshed.'
     return 'Not logged in.'
-    
+
+
 #This end-point was developed to delete a specific docuement posted by the user.
 @app.route('/delete/<field>', methods=['GET', 'DELETE'])
 def delete(field):
