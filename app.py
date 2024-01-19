@@ -26,10 +26,6 @@ user_ref = db.collection('users')
 
 
 app = Flask(__name__)
-# app.secret_key = 'sk-DSVpAn83ztBLK9Nb6VZzT3BlbkFJr3Ar0q2K28hc3YLT4Qaf437'
-# app.config['SESSION_TYPE'] = 'filesystem'  # You can choose other session storage options
-# app.config['PERMANENT_SESSION_LIFETIME'] = 4 # 30 minutes (adjust as needed)
-# Session(app)
 openai.api_key = "sk-0tsxXxXpqVdU7Mom2BFOT3BlbkFJzqv7WcNkFfGKbdvtnEyY"
 
 
@@ -55,7 +51,7 @@ def scrape_pptx(field):
 
     pptx_file = request.files['file']
 
-    ucid = field
+    email = field
 
     # Check if the file is a PowerPoint file
     if pptx_file.filename.endswith('.pptx') or pptx_file.filename.endswith('.PPTX'):
@@ -100,7 +96,6 @@ def scrape_pptx(field):
                 'embeddings': embeddings_json,  # Convert the embeddings to strings
                 'Paragraphs': paragraphs,
                 'name': document_name,
-                'ucid': ucid,
                 'document_id': document_id,
                 'pptx_url': pptx_url
             }
@@ -109,8 +104,28 @@ def scrape_pptx(field):
 
             # Push the data to Firestore
             db.collection('users').document(document_id).set(data)
+            user_ref = db.collection('email').document(email)
+            user_data = user_ref.get()
+            
+            if not user_data.exists:
+                return jsonify({"error": "User not found"}), 404
+            
+            existing_files = user_data.to_dict().get("files", [])
+            if not isinstance(existing_files, list):
+                existing_files = []
 
-            return jsonify({'embeddings': embeddings, 'Paragraphs':paragraphs, 'name': document_name , "ucid": ucid, "id": document_id, 'pptx_url': pptx_url})
+            # Append the new course data to the existing_all_courses list
+            new_data = {
+               'document_id': document_id,
+                 'document_name': document_name
+                 }
+            existing_files.append(new_data)
+
+            user_ref.update({
+                "files": existing_files
+            })
+
+            return jsonify({'embeddings': embeddings, 'Paragraphs':paragraphs, 'name': document_name , "id": document_id, 'pptx_url': pptx_url})
 
         except Exception as e:
             return jsonify({'error': 'Error occurred while extracting text: {}'.format(str(e))})
@@ -196,39 +211,91 @@ async def get_answer():
 
 
  #This end-point was used to return all the documents uploaded by the user.   
-@app.route('/dashboard/<field>', methods=['GET'])
-def dashboard(field):
+@app.route("/dashboard", methods=["GET"])
+def dashboard_students():
     try:
-        user_search = field
-        user_ref = db.collection('users')
-        query = user_ref.where('ucid', '==', user_search).stream()
-        array = [doc.to_dict() for doc in query]
-        return jsonify(array)
-    except Exception as error:
-        return str(error)
+        email = request.json["email"]
 
-#This end-point was used to return the session.  
-# @app.route('/refresh_session', methods=['GET'])
-# def refresh_session():
-#     if 'username' in session:
-#         session.permanent = True  # Mark the session as permanent
-#         return 'Session refreshed.'
-#     return 'Not logged in.'
+        if not email:
+            return jsonify({"error": "Email is required"}), 400
 
+        user_ref = db.collection('email').document(email)
+        user_data = user_ref.get()
+    
+        if not user_data.exists:
+            return jsonify({"error": "Student not found"}), 404
 
-#This end-point was developed to delete a specific docuement posted by the user.
-@app.route('/delete/<field>', methods=['GET', 'DELETE'])
-def delete(field):
+        user_info = user_data.to_dict()
+
+        response = {"message": "User data retrieved", "student_info": user_info}
+        return jsonify(response), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    
+@app.route('/deleteItem/', methods=['POST'])
+def delete_item():
     try:
-        user_search = field
-        user_ref = db.collection('users').document(user_search)
-        user_ref.delete()
+        # Ensure the request contains JSON data
+        if not request.is_json:
+            return jsonify({"error": "Invalid JSON data"}), 400
+
+        # Get data from the request
+        user_id = request.json.get('email')
+        item_index = request.json.get('itemIndex')
+
+        # Check if required data is present
+        if not user_id or item_index is None:
+            return jsonify({"error": "Missing required data"}), 400
+
+        user_ref = db.collection('email').document(user_id)
+
+        user_doc = user_ref.get()
+
+        if not user_doc.exists:
+            return jsonify({"error": "User not found"}), 404
+
+        user_data = user_doc.to_dict()
+
+        if 'files' not in user_data or not isinstance(user_data['files'], list):
+            return jsonify({"error": "Invalid user data structure"}), 400
+
+        if item_index < 0 or item_index >= len(user_data['files']):
+            return jsonify({"error": f"Invalid item index: {item_index}"}), 400
         
-        return jsonify({'message': 'Document deleted successfully'})
-    except Exception as error:
-        return jsonify({'error': str(error)})
+        document_ref_delete = user_data['files'][item_index]['document_id']
+
+        user_data['files'].pop(item_index)
+        other_collection_ref = db.collection('users').document(document_ref_delete)
+        other_collection_ref.delete()
     
 
+        # Update the Firestore document
+        user_ref.update({
+            'files': user_data['files']
+        })
+
+        return jsonify({"message": "File deleted successfully"}), 200
+
+    except Exception as error:
+        return jsonify({"error": str(error)}), 500
+    
+
+@app.route("/create/user", methods=["POST"])
+def create_user():
+    try:
+        email = request.json["email"]
+        json = {
+            "name": request.json["name"],
+            "email" : request.json["email"],
+            "files": []
+        }
+        db.collection('email').document(email).set(json)
+
+        response = {"message": "User created successfully."}
+        return jsonify(response), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 #This end-point was developed to update the docuement posted by the users.
 @app.route('/update/<id>', methods=['PUT'])
