@@ -59,9 +59,9 @@ def scrape_pptx(field):
         try:
             pptx_buffer = BytesIO()
             pptx_file.save(pptx_buffer)
-            pptx_buffer.seek(0) 
-
-            prs = Presentation(BytesIO(pptx_buffer.read()))
+            pptx_buffer.seek(0)
+            file_content = pptx_buffer.read()
+            prs = Presentation(BytesIO(file_content))
             extracted_text = ""
             for slide in prs.slides:
                 for shape in slide.shapes:
@@ -86,7 +86,7 @@ def scrape_pptx(field):
             embeddings_json = json.dumps(embeddings)
 
             blob = bucket.blob(document_name)
-            blob.upload_from_file(BytesIO(pptx_buffer.read()))
+            blob.upload_from_file(BytesIO(file_content))
             pptx_url = blob.public_url
 
             data = {
@@ -138,24 +138,7 @@ def create_prompt(context, query):
 
 
 
-
-#This end-point retrives the answer through the API call from the davinci LLM.
-# def generate_answer(prompt, temperature):
-#     response = openai.ChatCompletion.create(
-#         messages= prompt,
-#         model='gpt-3.5-turbo',
-#         temperature=0.7,
-#         max_tokens=100,
-#         n=1,
-#         stop=None,
-#         frequency_penalty=0,
-#         presence_penalty=0
-#     )
-
-#     answer = response['choices'][0]['message']['content']
-#     return answer
 def generate_answer(prompt, temperature):
-    print(prompt)
     res = openai.Completion.create(
     engine='gpt-3.5-turbo-instruct',
     prompt= prompt,
