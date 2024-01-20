@@ -15,13 +15,14 @@ import firebase_admin
 from firebase import firebase
 from firebase_admin import credentials
 from firebase_admin import firestore, storage
-cred = credentials.Certificate("key.json")
-    
+from io import BytesIO 
+cred = credentials.Certificate("key.json")  
 
-firebase_admin.initialize_app(cred)
+firebase_admin.initialize_app(cred, {  "storageBucket": "gs://celadonai-69915.appspot.com"})
 
 db = firestore.client()
 user_ref = db.collection('users')
+bucket = storage.bucket("celadonai-69915.appspot.com")
 
 
 
@@ -43,25 +44,24 @@ def array_embedder(sub_paragraphs):
     return embeddings
 
 
-#This end-point was developed to scrape the text from the ppt and store in chunks on firebase.
+
+# This end-point was developed to scrape the text from the ppt and store in chunks on firebase.
 @app.route('/upload/<field>', methods=['POST'])
 def scrape_pptx(field):
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'})
 
     pptx_file = request.files['file']
-
     email = field
 
     # Check if the file is a PowerPoint file
-    if pptx_file.filename.endswith('.pptx') or pptx_file.filename.endswith('.PPTX'):
+    if pptx_file.filename.lower().endswith(('.pptx', '.ppt')):
         try:
-            # Save the uploaded file in a temporary location
-            filepath = os.path.join('/tmp', pptx_file.filename)
-            pptx_file.save(filepath)
+            pptx_buffer = BytesIO()
+            pptx_file.save(pptx_buffer)
+            pptx_buffer.seek(0) 
 
-            # Extract text from the PowerPoint file
-            prs = Presentation(filepath)
+            prs = Presentation(BytesIO(pptx_buffer.read()))
             extracted_text = ""
             for slide in prs.slides:
                 for shape in slide.shapes:
@@ -70,7 +70,6 @@ def scrape_pptx(field):
                             for run in paragraph.runs:
                                 extracted_text += run.text
 
-            # Remove the temporary file
             paragraphs = []
             max_words = 200
             words = extracted_text.split()
@@ -78,61 +77,58 @@ def scrape_pptx(field):
                 paragraph = " ".join(words[:max_words])
                 paragraphs.append(paragraph)
                 words = words[max_words:]
-         
+
             embeddings = array_embedder(paragraphs)
             document_name = pptx_file.filename
-            os.remove(filepath)
-           # Save the extracted data to
+
+            # Save the extracted data to Firebase Storage
             document_id = str(uuid.uuid4())
             embeddings_json = json.dumps(embeddings)
 
-            bucket_name = "celadonai-69915.appspot.com"
-            storage_client = storage.bucket(bucket_name)
-            blob = storage_client.blob(document_name)
+            blob = bucket.blob(document_name)
+            blob.upload_from_file(BytesIO(pptx_buffer.read()))
             pptx_url = blob.public_url
 
-
             data = {
-                'embeddings': embeddings_json,  # Convert the embeddings to strings
+                'embeddings': embeddings_json,
                 'Paragraphs': paragraphs,
                 'name': document_name,
                 'document_id': document_id,
                 'pptx_url': pptx_url
             }
 
-            # Generate a unique document ID using UUID
-
-            # Push the data to Firestore
             db.collection('users').document(document_id).set(data)
             user_ref = db.collection('email').document(email)
             user_data = user_ref.get()
-            
+
             if not user_data.exists:
                 return jsonify({"error": "User not found"}), 404
-            
+
             existing_files = user_data.to_dict().get("files", [])
             if not isinstance(existing_files, list):
                 existing_files = []
 
-            # Append the new course data to the existing_all_courses list
             new_data = {
-               'document_id': document_id,
-                 'document_name': document_name
-                 }
+                'document_id': document_id,
+                'document_name': document_name,
+                'link': pptx_url
+            }
             existing_files.append(new_data)
 
             user_ref.update({
                 "files": existing_files
             })
 
-            return jsonify({'embeddings': embeddings, 'Paragraphs':paragraphs, 'name': document_name , "id": document_id, 'pptx_url': pptx_url})
+            pptx_buffer.close()
+
+            return jsonify({'embeddings': embeddings, 'Paragraphs': paragraphs, 'name': document_name,
+                            'id': document_id, 'pptx_url': pptx_url})
 
         except Exception as e:
-            return jsonify({'error': 'Error occurred while extracting text: {}'.format(str(e))})
+            return jsonify({'error': f'Error occurred while extracting text: {str(e)}'})
 
     else:
         return jsonify({'error': 'Invalid file format. Only PowerPoint files are supported.'})
-
 
 
 def create_prompt(context, query):
@@ -145,17 +141,19 @@ def create_prompt(context, query):
 
 #This end-point retrives the answer through the API call from the davinci LLM.
 def generate_answer(prompt, temperature):
-    response = openai.Completion.create(
-    model="gpt-3.5-turbo-instruct",
-    prompt=prompt,
-    temperature= temperature,
-    max_tokens=256,
-    top_p=1,
-    frequency_penalty=0,
-    presence_penalty=0,
-    stop = [' END']
+    response = openai.ChatCompletion.create(
+        messages= prompt,
+        model='gpt-3.5-turbo',
+        temperature=0.7,
+        max_tokens=100,
+        n=1,
+        stop=None,
+        frequency_penalty=0,
+        presence_penalty=0
     )
-    return (response.choices[0].text).strip()
+
+    answer = response['choices'][0]['message']['content']
+    return answer
 
 
 
@@ -212,7 +210,7 @@ async def get_answer():
 
  #This end-point was used to return all the documents uploaded by the user.   
 @app.route("/dashboard", methods=["GET"])
-def dashboard_students():
+def dashboard_users():
     try:
         email = request.json["email"]
 
