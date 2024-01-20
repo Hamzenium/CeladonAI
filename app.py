@@ -15,7 +15,7 @@ import firebase_admin
 from firebase import firebase
 from firebase_admin import credentials
 from firebase_admin import firestore, storage
-from io import BytesIO 
+from io import BytesIO  # Import BytesIO
 cred = credentials.Certificate("key.json")  
 
 firebase_admin.initialize_app(cred, {  "storageBucket": "gs://celadonai-69915.appspot.com"})
@@ -140,21 +140,33 @@ def create_prompt(context, query):
 
 
 #This end-point retrives the answer through the API call from the davinci LLM.
+# def generate_answer(prompt, temperature):
+#     response = openai.ChatCompletion.create(
+#         messages= prompt,
+#         model='gpt-3.5-turbo',
+#         temperature=0.7,
+#         max_tokens=100,
+#         n=1,
+#         stop=None,
+#         frequency_penalty=0,
+#         presence_penalty=0
+#     )
+
+#     answer = response['choices'][0]['message']['content']
+#     return answer
 def generate_answer(prompt, temperature):
-    response = openai.ChatCompletion.create(
-        messages= prompt,
-        model='gpt-3.5-turbo',
-        temperature=0.7,
-        max_tokens=100,
-        n=1,
-        stop=None,
-        frequency_penalty=0,
-        presence_penalty=0
-    )
-
-    answer = response['choices'][0]['message']['content']
-    return answer
-
+    print(prompt)
+    res = openai.Completion.create(
+    engine='gpt-3.5-turbo-instruct',
+    prompt= prompt,
+    temperature=0,
+    max_tokens=400,
+    top_p=1,
+    frequency_penalty=0,
+    presence_penalty=0,
+    stop=None
+)
+    return res['choices'][0]['text'].strip()
 
 
 #This end-point was developed to retrive the most similar chunks of text, it uses cosine similairty to compare the embeddings of the 
