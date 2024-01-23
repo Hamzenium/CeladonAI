@@ -46,13 +46,14 @@ def array_embedder(sub_paragraphs):
 
 
 # This end-point was developed to scrape the text from the ppt and store in chunks on firebase.
-@app.route('/upload/<field>', methods=['POST'])
-def scrape_pptx(field):
+@app.route('/upload/<field>/<link>', methods=['POST'])
+def scrape_pptx(field, link):
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'})
 
     pptx_file = request.files['file']
     email = field
+    link = link
 
     # Check if the file is a PowerPoint file
     if pptx_file.filename.lower().endswith(('.pptx', '.ppt')):
@@ -85,16 +86,16 @@ def scrape_pptx(field):
             document_id = str(uuid.uuid4())
             embeddings_json = json.dumps(embeddings)
 
-            blob = bucket.blob(document_name)
-            blob.upload_from_file(BytesIO(file_content))
-            pptx_url = blob.public_url
+            # blob = bucket.blob(document_name)
+            # blob.upload_from_file(BytesIO(file_content))
+            # pptx_url = blob.public_url
 
             data = {
                 'embeddings': embeddings_json,
                 'Paragraphs': paragraphs,
                 'name': document_name,
                 'document_id': document_id,
-                'pptx_url': pptx_url
+                'pptx_url': link
             }
 
             db.collection('users').document(document_id).set(data)
@@ -111,7 +112,7 @@ def scrape_pptx(field):
             new_data = {
                 'document_id': document_id,
                 'document_name': document_name,
-                'link': pptx_url
+                'link': link
             }
             existing_files.append(new_data)
 
@@ -122,7 +123,7 @@ def scrape_pptx(field):
             pptx_buffer.close()
 
             return jsonify({'embeddings': embeddings, 'Paragraphs': paragraphs, 'name': document_name,
-                            'id': document_id, 'pptx_url': pptx_url})
+                            'id': document_id, 'pptx_url': link})
 
         except Exception as e:
             return jsonify({'error': f'Error occurred while extracting text: {str(e)}'})
@@ -310,4 +311,3 @@ def update(id):
 
 if __name__ == '__main__':
     app.run(debug=True)
-
