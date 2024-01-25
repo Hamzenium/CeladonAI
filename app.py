@@ -175,15 +175,16 @@ def similarity(question, embeddings, paragraphs):
 
 #This end-point was developed to retrive a response of the question sent by the users.
 @app.route('/query', methods=['POST'])
-async def get_answer():
+def get_answer():
     data = request.get_json()
     document_id = str(data.get('document_id'))
     question = str(data.get('question'))
     doc_ref = db.collection('users').document(document_id)
     doc = doc_ref.get()
+    
     if not doc.exists:
         return jsonify({'error': 'Document not found'})
-    
+
     data = doc.to_dict()
     paragraphs = data.get('Paragraphs') 
     embeddings = data.get('embeddings')
@@ -191,15 +192,10 @@ async def get_answer():
     question_embedding = get_embedding(question)
     embeddings_list = json.loads(embeddings)
 
-    # Convert embeddings back to the original data structure
-
     similarity_result = similarity(question_embedding, embeddings_list, paragraphs)
     prompt_result = create_prompt(similarity_result, question)
 
-
-    loop = asyncio.get_event_loop()
-    generated_answer = await loop.run_in_executor(None, lambda: generate_answer(prompt_result,1.0))
-    print(generate_answer)
+    generated_answer = generate_answer(prompt_result, 1.0)
 
     return jsonify({'answer': generated_answer})
 
