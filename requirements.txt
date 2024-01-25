@@ -1,9 +1,9 @@
-firebase==4.0.1
-firebase_admin==3.2.1
-Flask==1.1.4
-flask_session==0.4.1
-fuzzywuzzy==0.18.0
-scipy==1.5.4
-openai
-python_pptx
-scikit_learn
+# firebase==4.0.1
+# firebase_admin==3.2.1
+# Flask==1.1.4
+# flask_session==0.4.1
+# fuzzywuzzy==0.18.0
+# scipy==1.5.4
+# openai
+# python_pptx
+# scikit_learn
