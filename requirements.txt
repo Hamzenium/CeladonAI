@@ -4,6 +4,7 @@ Flask==1.1.4
 flask_session==0.4.1
 fuzzywuzzy==0.18.0
 gunicorn==19.7.1
+Python==3.10.6
 # scipy==1.5.4
 # openai
 # numpy
