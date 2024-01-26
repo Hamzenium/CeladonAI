@@ -201,7 +201,7 @@ def get_answer():
 
 
  #This end-point was used to return all the documents uploaded by the user.   
-@app.route("/dashboard", methods=["GET"])
+@app.route("/dashboard", methods=["POST"])
 def dashboard_users():
     try:
         email = request.json["email"]
