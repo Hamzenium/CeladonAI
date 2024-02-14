@@ -72,7 +72,7 @@ def scrape_pptx(field, link):
                                 extracted_text += run.text
 
             paragraphs = []
-            max_words = 200
+            max_words = 400
             words = extracted_text.split()
             while words:
                 paragraph = " ".join(words[:max_words])
