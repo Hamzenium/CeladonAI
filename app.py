@@ -17,6 +17,7 @@ from firebase_admin import credentials
 from firebase_admin import firestore, storage
 from io import BytesIO  # Import BytesIO
 from pdfminer.high_level import extract_text
+from flask_cors import CORS
 cred = credentials.Certificate("key.json")  
 
 firebase_admin.initialize_app(cred, {  "storageBucket": "gs://celadonai-69915.appspot.com"})
@@ -28,6 +29,7 @@ bucket = storage.bucket("celadonai-69915.appspot.com")
 
 
 app = Flask(__name__)
+CORS(app)
 openai.api_key = "sk-0tsxXxXpqVdU7Mom2BFOT3BlbkFJzqv7WcNkFfGKbdvtnEyY"
 
 
