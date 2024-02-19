@@ -49,4 +49,4 @@ jobs:
       - name: Deploy to server
         run: |
           # Add your deployment script here
-          # For example, you might use scp or rsync to deploy your Flask app to a server
+          # For example, you might use scp or rsync to deploy your Flask app to a serverwer
