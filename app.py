@@ -16,6 +16,7 @@ from firebase import firebase
 from firebase_admin import credentials
 from firebase_admin import firestore, storage
 from io import BytesIO  # Import BytesIO
+from pdfminer.high_level import extract_text
 cred = credentials.Certificate("key.json")  
 
 firebase_admin.initialize_app(cred, {  "storageBucket": "gs://celadonai-69915.appspot.com"})
@@ -46,97 +47,126 @@ def array_embedder(sub_paragraphs):
 
 
 # This end-point was developed to scrape the text from the ppt and store in chunks on firebase.
-@app.route('/upload/<field>/<link>', methods=['POST'])
-def scrape_pptx(field, link):
+from flask import request
+
+@app.route('/upload/<field>', methods=['POST'])
+def scrape_document(field):
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'})
 
-    pptx_file = request.files['file']
+    file = request.files['file']
     email = field
-    link = link
+    link = "www.link.com"
 
-    # Check if the file is a PowerPoint file
-    if pptx_file.filename.lower().endswith(('.pptx', '.ppt')):
+    if file.filename.lower().endswith(('.pptx', '.ppt')):
         try:
-            pptx_buffer = BytesIO()
-            pptx_file.save(pptx_buffer)
-            pptx_buffer.seek(0)
-            file_content = pptx_buffer.read()
-            prs = Presentation(BytesIO(file_content))
-            extracted_text = ""
-            for slide in prs.slides:
-                for shape in slide.shapes:
-                    if shape.has_text_frame:
-                        for paragraph in shape.text_frame.paragraphs:
-                            for run in paragraph.runs:
-                                extracted_text += run.text
-
-            paragraphs = []
-            max_words = 400
-            words = extracted_text.split()
-            while words:
-                paragraph = " ".join(words[:max_words])
-                paragraphs.append(paragraph)
-                words = words[max_words:]
-
-            embeddings = array_embedder(paragraphs)
-            document_name = pptx_file.filename
-
-            # Save the extracted data to Firebase Storage
-            document_id = str(uuid.uuid4())
-            embeddings_json = json.dumps(embeddings)
-
-            # blob = bucket.blob(document_name)
-            # blob.upload_from_file(BytesIO(file_content))
-            # pptx_url = blob.public_url
-
-            data = {
-                'embeddings': embeddings_json,
-                'Paragraphs': paragraphs,
-                'name': document_name,
-                'document_id': document_id,
-                'pptx_url': link
-            }
-
-            db.collection('users').document(document_id).set(data)
-            user_ref = db.collection('email').document(email)
-            user_data = user_ref.get()
-
-            if not user_data.exists:
-                return jsonify({"error": "User not found"}), 404
-
-            existing_files = user_data.to_dict().get("files", [])
-            if not isinstance(existing_files, list):
-                existing_files = []
-
-            new_data = {
-                'document_id': document_id,
-                'document_name': document_name,
-                'link': link
-            }
-            existing_files.append(new_data)
-
-            user_ref.update({
-                "files": existing_files
-            })
-
-            pptx_buffer.close()
-
-            return jsonify({'embeddings': embeddings, 'Paragraphs': paragraphs, 'name': document_name,
-                            'id': document_id, 'pptx_url': link})
-
+            extracted_text = extract_text_from_pptx(file)
+            document_type = 'pptx'
         except Exception as e:
-            return jsonify({'error': f'Error occurred while extracting text: {str(e)}'})
+            return jsonify({'error': f'Error occurred while extracting text from PowerPoint file: {str(e)}'}), 500
+
+    elif file.filename.lower().endswith(('.pdf')):
+        try:
+            extracted_text = extract_text_from_pdf(file)
+            document_type = 'pdf'
+        except Exception as e:
+            return jsonify({'error': f'Error occurred while extracting text from PDF file: {str(e)}'}), 500
 
     else:
-        return jsonify({'error': 'Invalid file format. Only PowerPoint files are supported.'})
+        return jsonify({'error': 'Invalid file format. Only PowerPoint (PPTX/PPT) and PDF files are supported.'}), 400
+
+    try:
+        paragraphs = split_text_into_paragraphs(extracted_text)
+        embeddings = array_embedder(paragraphs)
+        document_name = file.filename
+
+        # Save the extracted data to Firebase Storage
+        document_id = str(uuid.uuid4())
+        embeddings_json = json.dumps(embeddings)
+
+        data = {
+            'embeddings': embeddings_json,
+            'Paragraphs': paragraphs,
+            'name': document_name,
+            'document_id': document_id,
+            f'{document_type}_url': link  # Assuming you want to save the document link as well
+        }
+
+        save_to_firebase(data, email, document_id, document_name, link)
+
+        return jsonify({'embeddings': embeddings, 'Paragraphs': paragraphs, 'name': document_name,
+                        'id': document_id, f'{document_type}_url': link})
+
+    except Exception as e:
+        return jsonify({'error': f'Error occurred while processing document: {str(e)}'}), 500
+
+
+def extract_text_from_pptx(pptx_file):
+    pptx_buffer = BytesIO()
+    pptx_file.save(pptx_buffer)
+    pptx_buffer.seek(0)
+    file_content = pptx_buffer.read()
+    prs = Presentation(BytesIO(file_content))
+    extracted_text = ""
+    for slide in prs.slides:
+        for shape in slide.shapes:
+            if shape.has_text_frame:
+                for paragraph in shape.text_frame.paragraphs:
+                    for run in paragraph.runs:
+                        extracted_text += run.text
+    pptx_buffer.close()
+    return extracted_text
+
+
+def extract_text_from_pdf(pdf_file):
+    filepath = os.path.join('/tmp', pdf_file.filename)
+    pdf_file.save(filepath)
+    text = extract_text(filepath)  # Assuming you have a function to extract text from PDF
+    os.remove(filepath)
+    return text
+
+
+def split_text_into_paragraphs(text):
+    paragraphs = []
+    max_words = 400
+    words = text.split()
+    while words:
+        paragraph = " ".join(words[:max_words])
+        paragraphs.append(paragraph)
+        words = words[max_words:]
+    return paragraphs
+
+
+def save_to_firebase(data, email, document_id, document_name, link):
+
+    db.collection('users').document(document_id).set(data)
+    user_ref = db.collection('email').document(email)
+    user_data = user_ref.get()
+
+    if not user_data.exists:
+        return jsonify({"error": "User not found"}), 404
+
+    existing_files = user_data.to_dict().get("files", [])
+    if not isinstance(existing_files, list):
+        existing_files = []
+
+    new_data = {
+        'document_id': document_id,
+        'document_name': document_name,
+        'link': link
+    }
+    existing_files.append(new_data)
+
+    user_ref.update({
+        "files": existing_files
+    })
+
 
 
 def create_prompt(context, query):
     header = "Answer the question as truthfully as possible using the provided context, and if the answer is not contained within the text and requires some latest information to be updated, print 'Please come up with another question'\n"
     final = header + context + "\n\n" + query + "\n"
     return final 
-
 
 
 def generate_answer(prompt, temperature):
