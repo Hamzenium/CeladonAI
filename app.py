@@ -323,17 +323,20 @@ def create_user():
 @app.route('/update/<id>', methods=['PUT'])
 def update(id):
     try:
-        ref = db.collection('users').document(id)
+        ref = db.collection('email').document(id)
 
-        existing_data = ref.get()
-        if not existing_data.exists:
-            return jsonify({"error": "Lab data not found"}), 404
+        files_existing_data = ref.get()
+        if not files_existing_data.exists:
+            return jsonify({"error": "User data not found"}), 404
 
-        update_data = request.json  # Assuming the request body contains the updated fields as JSON
+        files_updated_data = request.json.get("files")  # Assuming the request body contains the updated "files" array
 
-        ref.update(update_data)
+        ref.update({
+            "files": files_updated_data
+        })
 
-        return jsonify({"message": "Lab data updated successfully"}), 200
+        response = {"message": "Files updated successfully"}
+        return jsonify(response), 200
     except Exception as error:
         return jsonify({"error": str(error)}), 500
 
