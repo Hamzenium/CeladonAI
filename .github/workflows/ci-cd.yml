@@ -3,7 +3,8 @@ name: Flask CI/CD
 on:
   push:
     branches:
-      - Prod
+      - Prod  # Change this to your main branch name
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -28,9 +29,8 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/Prod' && github.event_name == 'push' && github.event.pull_request == null && job.status == 'success'
+    if: github.ref == 'refs/heads/Prod' && github.event_name == 'push' && github.event.pull_request == null && success()
 
     steps:
       - name: Skip deployment when using Heroku
         run: echo "Skipping deployment as Heroku handles it automatically."
-
