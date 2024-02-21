@@ -175,7 +175,7 @@ def generate_answer(prompt, temperature):
     res = openai.Completion.create(
     engine='gpt-3.5-turbo-instruct',
     prompt= prompt,
-    temperature=0,
+    temperature=1.0,
     max_tokens=400,
     top_p=1,
     frequency_penalty=0,
