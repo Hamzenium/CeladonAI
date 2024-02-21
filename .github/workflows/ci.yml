@@ -3,7 +3,7 @@ name: Flask CI/CD
 on:
   push:
     branches:
-      - Prod  # Change this to your main branch name
+      - Prod
 
 jobs:
   build:
@@ -23,8 +23,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Set up virtual environment
+        run: python -m venv venv
+
+      - name: Activate virtual environment and install dependencies
+        run: |
+          source venv/bin/activate
+          pip install -r requirements.txt
+
       - name: Run tests
         run: |
+          source venv/bin/activate
           python -m pytest test/test_app.py
 
   deploy:
