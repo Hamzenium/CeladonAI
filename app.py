@@ -190,7 +190,7 @@ def generate_answer(prompt, temperature):
 def similarity(question, embeddings, paragraphs):
     similarity_scores = cosine_similarity([question], embeddings)[0]
 
-    most_similar_indices = np.argsort(similarity_scores)[-3:]
+    most_similar_indices = np.argsort(similarity_scores)[-2:]
 
     most_similar_paragraphs = [(paragraphs[i], similarity_scores[i]) for i in most_similar_indices[::-1]]
     most_similar_string = ""
