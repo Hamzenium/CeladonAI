@@ -25,7 +25,7 @@ jobs:
 
       - name: Run tests
         run: |
-          python -m pytest test/test_app
+          python -m pytest test/test_app.py
 
       # Add more steps as needed for your CI process, such as linting, code quality checks, etc.ew
 
