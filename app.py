@@ -7,6 +7,8 @@ import time
 from fuzzywuzzy import fuzz
 from sklearn.metrics.pairwise import cosine_similarity
 import openai
+import requests
+import json
 import os
 import tempfile
 import asyncio
@@ -37,9 +39,9 @@ openai.api_key = "sk-0tsxXxXpqVdU7Mom2BFOT3BlbkFJzqv7WcNkFfGKbdvtnEyY"
 def get_embedding(text, model="text-embedding-ada-002"):
    text = text.replace("\n", " ")
    return openai.Embedding.create(input = [text], model=model)['data'][0]['embedding']
-
-
 #This function is used to break the scraped text into the chunks, and is used as a helper funtion.r
+
+
 def array_embedder(sub_paragraphs):
     embeddings = []
     for paragraph in sub_paragraphs:
@@ -166,23 +168,48 @@ def save_to_firebase(data, email, document_id, document_name, link):
 
 
 def create_prompt(context, query):
-    header = """ I want you to act as a document that I am having a conversation with. Your name is "AI Assistant". You will provide me with answers from the given info. If the answer is not included, say exactly "Hmm, I am not sure." and stop after that. Refuse to answer any question not about the info. Never break character."""
-    final = header + context + "\n\n" + query + "\n"
+    # header = """ I want you to act as a document that I am having a conversation with. Your name is "AI Assistant". You will provide me with answers from the given info. If the answer is not included, say exactly "Hmm, I am not sure." and stop after that. Refuse to answer any question not about the info. Never break character."""
+    final = context + "\n\n" + query + "\n"
     return final 
 
 
+
 def generate_answer(prompt, temperature):
-    res = openai.Completion.create(
-    engine='gpt-3.5-turbo-instruct',
-    prompt= prompt,
-    temperature=1.0,
-    max_tokens=400,
-    top_p=1,
-    frequency_penalty=0,
-    presence_penalty=0,
-    stop=None
-)
-    return res['choices'][0]['text'].strip()
+    # Set your OpenAI API key
+    api_key = 'sk-0tsxXxXpqVdU7Mom2BFOT3BlbkFJzqv7WcNkFfGKbdvtnEyY'
+    
+    # Define the endpoint URL
+    url = 'https://api.openai.com/v1/chat/completions'
+    # Define the headers'
+    
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {api_key}'
+    }
+    
+    # Define the payload
+    payload = {
+        'model': 'gpt-3.5-turbo',
+        'temperature': 1.0,
+        'messages': [
+            {
+                'role': 'system',
+                'content': """I want you to act as a document that I am having a conversation with. Your name is "AI Assistant". You will provide me with answers from the given info. Never break character."""
+            },
+              {
+                'role': 'assistant',
+                'content': prompt
+            }
+        ]
+    }
+
+    response = requests.post(url, headers=headers, data=json.dumps(payload))
+    
+    response_json = response.json()
+    
+    answer = response_json['choices'][0]['message']['content']
+    
+    return answer
 
 
 #This end-point was developed to retrive the most similar chunks of text, it uses cosine similairty to compare the embeddings of the 
@@ -200,8 +227,6 @@ def similarity(question, embeddings, paragraphs):
 
     # Return the top three most similar paragraphs as a string
     return most_similar_string
-
-
 
 
 

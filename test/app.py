@@ -6,7 +6,9 @@ import json
 import time
 from fuzzywuzzy import fuzz
 from sklearn.metrics.pairwise import cosine_similarity
-import openai
+from openai import OpenAI
+
+client = OpenAI(api_key="sk-0tsxXxXpqVdU7Mom2BFOT3BlbkFJzqv7WcNkFfGKbdvtnEyY")
 import os
 import tempfile
 import asyncio
@@ -30,13 +32,12 @@ bucket = storage.bucket("celadonai-69915.appspot.com")
 
 app = Flask(__name__)
 CORS(app)
-openai.api_key = "sk-0tsxXxXpqVdU7Mom2BFOT3BlbkFJzqv7WcNkFfGKbdvtnEyY"
 
 
 #This function uses the ADA LLM to produce the embeddings of the chunks.
 def get_embedding(text, model="text-embedding-ada-002"):
    text = text.replace("\n", " ")
-   return openai.Embedding.create(input = [text], model=model)['data'][0]['embedding']
+   return client.embeddings.create(input = [text], model=model)['data'][0]['embedding']
 
 
 #This function is used to break the scraped text into the chunks, and is used as a helper funtion.r
@@ -172,17 +173,15 @@ def create_prompt(context, query):
 
 
 def generate_answer(prompt, temperature):
-    res = openai.Completion.create(
-    engine='gpt-3.5-turbo-instruct',
+    res = client.completions.create(engine='gpt-3.5-turbo-instruct',
     prompt= prompt,
     temperature=0,
     max_tokens=400,
     top_p=1,
     frequency_penalty=0,
     presence_penalty=0,
-    stop=None
-)
-    return res['choices'][0]['text'].strip()
+    stop=None)
+    return res.choices[0].text.strip()
 
 
 #This end-point was developed to retrive the most similar chunks of text, it uses cosine similairty to compare the embeddings of the 
