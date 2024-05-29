@@ -174,7 +174,7 @@ def create_prompt(context, query):
 
 
 
-def generate_answer(prompt, temperature):
+def generate_answer(prompt, result):
     # Set your OpenAI API key
     api_key = 'sk-0tsxXxXpqVdU7Mom2BFOT3BlbkFJzqv7WcNkFfGKbdvtnEyY'
     
@@ -254,7 +254,7 @@ def get_answer():
 
     generated_answer = generate_answer(prompt_result, 1.0)
 
-    return jsonify({'answer': generated_answer})
+    return jsonify({'answer': generated_answer, "para": similarity_result})
 
 
  #This end-point was used to return all the documents uploaded by the user.   
