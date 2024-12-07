@@ -32,7 +32,7 @@ bucket = storage.bucket("celadonai-69915.appspot.com")
 
 app = Flask(__name__)
 CORS(app)
-openai.api_key = "sk-0tsxXxXpqVdU7Mom2BFOT3BlbkFJzqv7WcNkFfGKbdvtnEyY"
+openai.api_key = "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"
 
 
 #This function uses the ADA LLM to produce the embeddings of the chunks.
