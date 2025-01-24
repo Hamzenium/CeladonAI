@@ -1,10 +1,7 @@
-CMD ["python3", "app.py"]
-# Dockerfile
-
-# Use an official Python runtime as a parent image
+# Use an official Python image as the base image
 FROM python:3.10-slim
 
-# Set the working directory
+# Set the working directory inside the container
 WORKDIR /app
 
 # Copy the current directory contents into the container
@@ -13,8 +10,8 @@ COPY . /app
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose the port the app runs on
+# Expose the port your Flask app runs on
 EXPOSE 5000
 
-# Run the application
-CMD ["python", "app.py"]
+# Run the Flask app
+CMD ["python3", "app.py"]
