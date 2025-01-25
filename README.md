@@ -1,4 +1,4 @@
-# **Microservices System**
+# **CelAI Backend**
 
 A distributed system consisting of multiple microservices, designed for scalability, modularity, and maintainability. This project follows a modern microservices architecture with each service addressing a specific functionality.
 
