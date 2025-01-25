@@ -6,7 +6,11 @@ import os
 import boto3
 from botocore.client import Config
 import json
+import hashlib
+import time
 from dotenv import load_dotenv
+import firebase_admin
+from firebase_admin import credentials, firestore
 
 # Load environment variables
 load_dotenv()
@@ -28,6 +32,12 @@ RABBITMQ_CONFIG = {
     "queue_name": os.getenv("RABBITMQ_QUEUE_NAME")
 }
 
+# Firebase Admin initialization
+FIREBASE_KEY_FILE = 'key.json'  # Replace with the actual path to your key.json file
+cred = credentials.Certificate(FIREBASE_KEY_FILE)
+firebase_admin.initialize_app(cred)
+db = firestore.client()
+
 # Initialize S3 client
 s3 = boto3.resource(
     's3',
@@ -38,25 +48,6 @@ s3 = boto3.resource(
     region_name=S3_CONFIG["region_name"]
 )
 
-async def send_metadata_to_rabbitmq(email, file_url):
-    """Send metadata to the RabbitMQ queue."""
-    try:
-        connection = await aio_pika.connect_robust(RABBITMQ_CONFIG["url"])
-        async with connection:
-            channel = await connection.channel()
-            await channel.set_qos(prefetch_count=10)
-            queue = await channel.declare_queue(RABBITMQ_CONFIG["queue_name"], auto_delete=True)
-
-            message = json.dumps({"email": email, "file_url": file_url})
-
-            await channel.default_exchange.publish(
-                aio_pika.Message(body=message.encode()),
-                routing_key=queue.name,
-            )
-            logging.info("Metadata sent to RabbitMQ")
-    except Exception as e:
-        logging.error(f"Failed to send metadata to RabbitMQ: {e}")
-
 def create_bucket_if_not_exists(bucket_name):
     """Check if S3 bucket exists, and create it if not."""
     try:
@@ -64,22 +55,86 @@ def create_bucket_if_not_exists(bucket_name):
     except Exception:
         s3.create_bucket(Bucket=bucket_name)
 
-def upload_file_to_s3_bucket(bucket_name, field, file):
-    """Upload a file to the S3 bucket."""
-    document_name = file.filename
-    if not document_name:
+def upload_file_to_s3_bucket(bucket_name, file):
+    """Upload a file to the S3 bucket with a unique name and generate a presigned URL."""
+    original_name = file.filename
+    if not original_name:
         raise ValueError("File must have a name")
+    
+    # Generate a unique name using current time and the original filename
+    timestamp = str(time.time()).encode()
+    unique_name = hashlib.sha256(timestamp + original_name.encode()).hexdigest()
+    unique_document_name = f"{unique_name}_{original_name}"
 
-    temp_file_path = f"/tmp/{document_name}"
+    temp_file_path = f"/tmp/{unique_document_name}"
     file.save(temp_file_path)
 
-    s3_key = f"{field}/{document_name}"
+    s3_key = f"{unique_document_name}"
     s3.Bucket(bucket_name).upload_file(temp_file_path, s3_key)
 
     os.remove(temp_file_path)
 
-    file_url = f"{S3_CONFIG['endpoint_url']}/{bucket_name}/{s3_key}"
-    return file_url
+    # Generate a presigned URL for file access
+    presigned_url = s3.meta.client.generate_presigned_url(
+        'get_object',
+        Params={'Bucket': bucket_name, 'Key': s3_key},
+        ExpiresIn=3600  # URL expires in 1 hour
+    )
+    return presigned_url, s3_key
+
+async def send_metadata_to_rabbitmq(email, file_url, s3_key, document_id):
+    """Send metadata to the RabbitMQ queue, including the S3 key."""
+    try:
+        connection = await aio_pika.connect_robust(RABBITMQ_CONFIG["url"])
+        async with connection:
+            channel = await connection.channel()
+            await channel.set_qos(prefetch_count=10)
+
+            # Declare the queue to ensure it exists
+            await channel.declare_queue(
+                RABBITMQ_CONFIG["queue_name"],
+                durable=True
+            )
+
+            message = json.dumps({
+                "email": email,
+                "file_url": file_url,
+                "s3_key": s3_key,
+                "document_id": document_id
+            })
+
+            await channel.default_exchange.publish(
+                aio_pika.Message(body=message.encode()),
+                routing_key=RABBITMQ_CONFIG["queue_name"],
+            )
+            logging.info("Metadata sent to RabbitMQ")
+    except Exception as e:
+        logging.error(f"Failed to send metadata to RabbitMQ: {e}")
+
+def save_to_firebase( email, document_id, document_name, link):
+    """Save metadata to Firebase Firestore."""
+    dict = {}
+    db.collection('users').document(document_id).set(dict)
+    user_ref = db.collection('email').document(email)
+    user_data = user_ref.get()
+
+    if not user_data.exists:
+        raise ValueError("User not found")
+
+    existing_files = user_data.to_dict().get("files", [])
+    if not isinstance(existing_files, list):
+        existing_files = []
+
+    new_data = {
+        'document_id': document_id,
+        'document_name': document_name,
+        'link': link
+    }
+    existing_files.append(new_data)
+
+    user_ref.update({
+        "files": existing_files
+    })
 
 @app.route('/upload/<field>', methods=['POST'])
 def upload_file_endpoint(field):
@@ -88,15 +143,19 @@ def upload_file_endpoint(field):
         return jsonify({'error': 'No file uploaded'}), 400
 
     file = request.files['file']
+    email = field # Expecting email in the form data
 
     try:
         create_bucket_if_not_exists(S3_CONFIG["bucket_name"])
 
-        file_url = upload_file_to_s3_bucket(S3_CONFIG["bucket_name"], field, file)
+        file_url, s3_key = upload_file_to_s3_bucket(S3_CONFIG["bucket_name"], file)
+        document_id = hashlib.sha256(f"{email}_{time.time()}".encode()).hexdigest()
 
-        asyncio.run(send_metadata_to_rabbitmq(field, file_url))
+        asyncio.run(send_metadata_to_rabbitmq(email, file_url, s3_key, document_id))
+        document_name = file.filename
+        save_to_firebase(email, document_id, document_name, file_url)
 
-        return jsonify({'message': 'File uploaded successfully', 'file_url': file_url}), 200
+        return jsonify({'message': 'File uploaded successfully', 'file_url': file_url, 's3_key': s3_key}), 200
 
     except ValueError as e:
         return jsonify({'error': str(e)}), 400

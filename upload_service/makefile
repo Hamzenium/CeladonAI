@@ -16,7 +16,7 @@ help:
 	@echo "  make test         - Run tests using pytest"
 	@echo "  make clean        - Remove virtual environment and temporary files"
 
-install:
+build:
 	python3 -m venv $(VENV_DIR)
 	$(PIP) install --upgrade pip
 	$(PIP) install -r requirements.txt
