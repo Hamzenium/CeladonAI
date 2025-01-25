@@ -34,7 +34,7 @@ A distributed system consisting of multiple microservices, designed for scalabil
                                       v                 v
                      +----------------+               +----------------+
                      | User Service   |               | Upload Service |
-                     |  (Python/Flask)|               |  (Python/Flask)|
+                     |  (NodeJS)     )|               |  (Python/Flask)|
                      +----------------+               +----------------+
                             |                                  |
                             v                                  v
@@ -46,7 +46,7 @@ A distributed system consisting of multiple microservices, designed for scalabil
                                                         v
                               +---------------------------+
                               |       Queue System        |
-                              |       (Go + RabbitMQ)     |
+                              |             RabbitMQ      |
                               +---------------------------+
                                       |
                                       v
