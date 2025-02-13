@@ -14,6 +14,7 @@ import (
 	"cloud.google.com/go/firestore"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/joho/godotenv"
 	pdf "github.com/ledongthuc/pdf"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"google.golang.org/api/option"
@@ -38,9 +39,16 @@ const (
 var (
 	s3Client        *s3.Client
 	firestoreClient *firestore.Client
+	openAIAPIKey    string
 )
 
 func main() {
+
+	errp := godotenv.Load("./config/.env")
+	if errp != nil {
+		log.Fatalf("Error loading .env file from config folder: %v", errp)
+	}
+	openAIAPIKey = os.Getenv("OPENAI_API_KEY")
 	ctx := context.Background()
 
 	// Initialize Firestore client using service account JSON
@@ -237,7 +245,6 @@ func processDownloadedFile(filePath string) ([]string, [][]float64) {
 
 	// Get embeddings for the chunks
 	embeddings := getEmbeddings(chunks)
-	fmt.Print(chunks, embeddings)
 	// Return both chunks and embeddings
 	return chunks, embeddings
 }
@@ -247,7 +254,7 @@ func getEmbeddings(textChunks []string) [][]float64 {
 	embeddings := [][]float64{}
 	for _, chunk := range textChunks {
 		payload := fmt.Sprintf(`{"input": "%s", "model": "text-embedding-ada-002"}`, chunk)
-		apiKey := "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"
+		apiKey := openAIAPIKey
 		req, _ := http.NewRequest("POST", url, bytes.NewBuffer([]byte(payload)))
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 		req.Header.Set("Content-Type", "application/json")
