@@ -1,0 +1,109 @@
+.navbar {
+    padding: 1rem;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    max-width: 1200px;
+    margin: auto;
+}
+
+.navBrand {
+    display: flex;
+    align-items: center;
+}
+
+.brandLogo {
+    width: 100px;
+}
+
+.brandName {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.navList, .navListMobile {
+    list-style: none;
+    display: flex;
+}
+
+.navListMobile {
+    display: none;
+}
+
+.navItem {
+    margin-right: 1.5rem;
+}
+
+.navLink {
+    color: rgb(0, 0, 0);
+    text-decoration: none;
+    font-weight: bold;
+}
+
+@media only screen and (max-width: 800px) {
+    .brandLogo {
+        width: 70px;
+    }
+
+    .navList {
+        display: none;
+    }
+
+    .navListMobile {
+        display: flex;
+        justify-content: flex-start;
+        border-bottom: 1px solid rgb(255, 255, 255);
+        padding-bottom: 15px;
+    }
+
+    .brandName {
+        font-size: 16px;
+    }
+    
+    .navLink {
+        font-size: 12px;
+    }
+}
+
+.navLink:hover {
+    text-decoration: underline;
+}
+
+.authButtons {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+}
+
+@media only screen and (max-width: 800px) {
+    .authButtons p {
+        display: none;
+    }
+}
+
+.authButton, .logout {
+    background-color: transparent;
+    color: rgb(91, 66, 172);
+    border: 2px solid rgb(91, 66, 172);
+    font-weight: bold;
+    border-radius: 4px;
+    padding: 0.5rem 1rem;
+    margin-left: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.authButton:hover {
+    background-color: rgb(91, 66, 172);
+    color: rgb(255, 255, 255);
+}
+
+.logout {
+    color: rgb(203, 58, 58);
+    border: 2px solid rgb(203, 58, 58);
+}
+
+.logout:hover {
+    background-color: rgb(203, 58, 58);
+    color: rgb(255, 255, 255);
+}

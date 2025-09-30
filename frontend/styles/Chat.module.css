@@ -1,0 +1,155 @@
+.Chat {
+    width: 100%;
+    height: 100vh;
+    background-image: url("https://images.pexels.com/photos/7130555/pexels-photo-7130555.jpeg?auto=compress&cs=tinysrgb&h=627&fit=crop&w=1200");
+    background-size: cover;
+    background-repeat: no-repeat;
+}
+
+.top {
+    padding: 0.2rem 1rem;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin: auto;
+    border-bottom: 1px solid rgb(255, 255, 255);
+}
+
+@media only screen and (max-width: 800px) {
+    .top h3 {
+        font-size: 14px;
+    }
+}
+
+.messageContainer {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    margin: 20px auto;
+    height: 80vh;
+    background-color: white;
+    border-radius: 8px;
+    max-width: 700px;
+    overflow: hidden;
+}
+
+@media only screen and (max-width: 800px) {
+    .messageContainer {
+        width: 100%;
+        border-radius: 0;
+    }
+}
+
+.messages {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-bottom: 20px;
+}
+
+.para {
+    padding: 10px 15px;
+    background-color: rgb(0, 0, 0);
+    color: rgb(210, 210, 210);
+    z-index: 100;
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    margin: 10px;
+    font-size: 12px;
+    width: 200px;
+    height: 350px;
+    border-radius: 3px;
+    overflow-y: scroll;
+}
+
+.message {
+    padding: 20px;
+    width: 100%;
+    max-width: 660px;
+}
+
+.message:nth-child(even) {
+    background-color: rgb(255, 255, 255);
+    text-align: right;
+}
+
+.message:nth-child(odd) {
+    background-color: rgb(248, 248, 248);
+    text-align: left;
+}  
+
+.form {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    bottom: 0;
+    padding: 20px 0;
+    background-color: rgb(237, 237, 237);
+    border-bottom-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+}
+
+.input {
+    padding: 15px 20px;
+    margin-right: 10px;
+    border-radius: 5px;
+    border: 1px solid #ffffff;
+    width: 100%;
+    max-width: 450px;
+    outline: none;
+}
+
+.input:focus {
+    outline: 1px solid rgb(83, 52, 182);
+    filter: drop-shadow(0 0 0.3rem rgb(198, 186, 232));
+}
+
+.button, .disabled {
+    padding: 10px 20px;
+    background-color: rgb(83, 52, 182);
+    border: none;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+@media only screen and (max-width: 800px) {
+    .input {
+        max-width: 225px;
+    }
+}
+
+.disabled {
+    opacity: 0.7;
+}
+
+.back {
+    background-color: rgb(31, 79, 225);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-weight: bold;
+    border-radius: 4px;
+    margin: 0 20px;
+}
+
+@media only screen and (max-width: 800px) {
+    .back {
+        font-size: 12px;
+    }
+}
+
+.alertMessage {
+    position: fixed;
+    background-color: rgb(28, 28, 28);
+    padding: 20px;
+    width: 400px;
+    border-radius: 10px;
+    color: rgb(226, 226, 226);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}

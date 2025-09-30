@@ -1,0 +1,65 @@
+.Auth {
+    width: 100%;
+    height: 100vh;
+    background-image: url("https://images.pexels.com/photos/7130555/pexels-photo-7130555.jpeg?auto=compress&cs=tinysrgb&h=627&fit=crop&w=1200");
+    background-size: cover;
+    background-repeat: no-repeat;
+    padding: 100px 0;
+}
+
+.wrapper {
+    width: 100%;
+    max-width: 450px;
+    margin: 0 auto;
+    padding: 60px;
+    border: 2px solid #ffffff;
+    background-color: rgba(255, 255, 255, 0.85);
+    border-radius: 5px;
+}
+
+@media only screen and (max-width: 800px) {
+    .wrapper {
+        padding: 20px;
+        max-width: 280px;
+        margin-top: 10vh;
+    }
+}
+
+.input {
+    width: 100%;
+    padding: 15px 10px;
+    margin-top: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    max-width: 428px;
+}
+
+.button {
+    display: block;
+    width: 100%;
+    padding: 15px 10px;
+    margin-top: 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.btnGoogle {
+    display: flex;
+    background-color: #e8eff6;
+    color: black;
+    align-items: center;
+    justify-content: center;
+}
+
+.btnGoogle img {
+    margin-right: 10px;
+}
+
+@media only screen and (max-width: 800px) {
+    .input {
+        max-width: 258px;
+    }
+}
