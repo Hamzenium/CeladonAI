@@ -26,7 +26,7 @@ A distributed system consisting of multiple microservices, designed for scalabil
 ```plaintext
                                    +---------------------------+
                                    |    Frontend (Optional)    |
-                                   |      React or Angular     |
+                                   |      NextJS               |
                                    +---------------------------+
                                             |
                                             v
@@ -62,56 +62,52 @@ A distributed system consisting of multiple microservices, designed for scalabil
 
 ---
 
-## **Microservices Overview**
-1. **API Gateway Service:**
-   - Acts as the central entry point for all external requests.
-   - Routes incoming requests to appropriate backend services.
-   - Technologies: **Node.js**, **Express**.
+## **Microservices Overview (Infra @ Heroku)**
 
-2. **User Service:**
-   - Manages user-related operations such as registration, authentication, and profile management.
-   - Utilizes **NoSQL Database** for user data storage.
-   - Technologies: **Python**, **Flask**, **NoSQL Database**.
+1. **API Gateway Service:**  
+   - Central entry point for all external requests.  
+   - Routes incoming requests to appropriate backend services.  
+   - Technologies: **Node.js**, **Express**  
 
-3. **Upload Service:**
-   - Handles file uploads and integrates with a PostgreSQL database for metadata storage.
-   - Utilizes **AWS S3** for scalable file storage of large files.
-   - Produces tasks into the **Queue System**.
-   - Technologies: **Python**, **Flask**, **PostgreSQL**, **AWS S3**.
+2. **User Service:**  
+   - Manages user operations: registration, authentication, profile management.  
+   - Stores user data in **Cloud Firestore**.  
+   - Technologies: **Python**, **Flask**, **Cloud Firestore**  
 
-4. **Consumer Service:**
-   - Processes tasks from the **Queue System**.
-   - Consumes files from **AWS S3** and fetches user data from the **NoSQL Database**.
-   - Technologies: **Python**, **AWS S3**, **NoSQL Database**, **RabbitMQ**.
+3. **Upload Service:**  
+   - Handles file uploads and metadata storage.  
+   - Uses **Heroku Storage Add-ons (S3-compatible)** for scalable file storage.  
+   - Produces tasks into the **Queue System**.  
+   - Technologies: **Python**, **Flask**, **Heroku Storage**, **Cloud Firestore**  
 
-5. **Queue System:**
-   - Manages task queues and asynchronous processing using RabbitMQ.
-   - Serves as the intermediary between **Upload Service** (producer) and **Consumer Service**.
-   - Technologies: **Go**, **RabbitMQ**.
+4. **Consumer Service:**  
+   - Processes tasks from the **Queue System**.  
+   - Consumes files from **Heroku Storage** and fetches user data from **Cloud Firestore**.  
+   - Technologies: **Python**, **Heroku Storage**, **Cloud Firestore**, **RabbitMQ**  
 
-6. **S3 Storage:**
-   - Handles scalable file storage using AWS S3 buckets for large files or backups.
-   - Used by **Upload Service** and **Consumer Service**.
-   - Technologies: **AWS S3**.
+5. **Queue System:**  
+   - Manages task queues and asynchronous processing using **RabbitMQ**.  
+   - Acts as the intermediary between **Upload Service** (producer) and **Consumer Service**.  
+   - Technologies: **Go**, **RabbitMQ**  
 
-7. **NoSQL Database:**
-   - Stores user data for the **User Service**.
-   - Technologies: **NoSQL Database**.
+6. **Storage:**  
+   - Handles scalable file storage for uploads/backups via **Heroku Storage Add-ons**.  
+   - Used by **Upload Service** and **Consumer Service**.  
+
+7. **Database:**  
+   - Stores user and service metadata.  
+   - Powered by **Cloud Firestore**  
 
 ---
 
 ## **Technologies Used**
-- **Frontend (Optional):** React or Angular.
-- **Backend:**
-  - API Gateway: Node.js + Express.
-  - User Service: Python + Flask.
-  - Upload Service: Python + Flask.
-  - Consumer Service: Python.
-- **Queue System:** Go + RabbitMQ.
-- **Storage:** AWS S3 (Used by Upload Service and Consumer Service).
-- **Database:** NoSQL (Used by User Service).
-- **Messaging Queue:** RabbitMQ.
-- **Containerization:** Docker & Docker Compose.
+- **Frontend:** **Next.js**  
+- **Backend:** Node.js + Express (API Gateway), Python + Flask (User & Upload Service), Python (Consumer Service)  
+- **Queue System:** Go + RabbitMQ  
+- **Storage:** Heroku Storage Add-ons (S3-compatible)  
+- **Database:** Cloud Firestore  
+- **Messaging Queue:** RabbitMQ  
+- **Containerization:** Docker & Docker Compose  
 
 ---
 
