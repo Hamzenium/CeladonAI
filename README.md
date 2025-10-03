@@ -108,9 +108,8 @@ A distributed system consisting of multiple microservices, designed for scalabil
   - Upload Service: Python + Flask.
   - Consumer Service: Python.
 - **Queue System:** Go + RabbitMQ.
-- **Cache:** Redis (Used by User Service).
 - **Storage:** AWS S3 (Used by Upload Service and Consumer Service).
-- **Database:** PostgreSQL, NoSQL (Used by User Service).
+- **Database:** NoSQL (Used by User Service).
 - **Messaging Queue:** RabbitMQ.
 - **Containerization:** Docker & Docker Compose.
 
@@ -124,8 +123,7 @@ A distributed system consisting of multiple microservices, designed for scalabil
 - **Node.js**: If running the API Gateway locally.
 - **Python**: Required for Python-based services.
 - **Go**: Required for the Queue System.
-- **AWS Account**: For S3 setup.
-- **Redis**: Install locally or use a managed Redis service.
+- **heroku Account**: For S3 setup.
 
 ### **Running the System**
 1. **Clone the Repository**:
@@ -138,42 +136,6 @@ A distributed system consisting of multiple microservices, designed for scalabil
    ```bash
    docker-compose up --build
    ```
-
-3. **Access Services**:
-   - **API Gateway:** [http://localhost:8080](http://localhost:8080)
-   - **RabbitMQ Management Interface:** [http://localhost:15672](http://localhost:15672) (default credentials: guest/guest).
-
-4. **Environment Variables**:
-   Ensure `.env` files are set up for each service with the required variables:
-   - **API Gateway:**
-     ```env
-     SERVICE_UPLOAD=http://upload_service:5000
-     SERVICE_QUEUE=http://queue_system:4000
-     ```
-   - **Upload Service:**
-     ```env
-     DATABASE_URL=postgresql://postgres:password@db:5432/mydb
-     AWS_ACCESS_KEY_ID=<your-access-key>
-     AWS_SECRET_ACCESS_KEY=<your-secret-key>
-     AWS_S3_BUCKET=<your-bucket-name>
-     ```
-   - **Consumer Service:**
-     ```env
-     AWS_ACCESS_KEY_ID=<your-access-key>
-     AWS_SECRET_ACCESS_KEY=<your-secret-key>
-     AWS_S3_BUCKET=<your-bucket-name>
-     RABBITMQ_URL=amqp://rabbitmq:5672
-     ```
-   - **Queue System:**
-     ```env
-     RABBITMQ_URL=amqp://rabbitmq:5672
-     ```
-   - **NoSQL Database:**
-     ```env
-     NOSQL_DB_URL=<your-nosql-database-url>
-     ```
-
----
 
 ## **Contributing**
 
